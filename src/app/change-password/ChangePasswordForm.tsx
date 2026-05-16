@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/client";
 
 export default function ChangePasswordForm() {
-    const router = useRouter();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
@@ -47,8 +47,11 @@ export default function ChangePasswordForm() {
         setLoading(false);
 
         setTimeout(() => {
-            router.push("/");
-            router.refresh();
+            void (async () => {
+                const supabase = createClient();
+                await supabase.auth.signOut({ scope: "global" });
+                window.location.replace("/login");
+            })();
         }, 900);
     }
 

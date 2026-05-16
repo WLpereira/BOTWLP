@@ -4,6 +4,13 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_ROUTES = ["/login"];
 
 export async function proxy(req: NextRequest) {
+    const pathname = req.nextUrl.pathname;
+
+    // API routes handle auth/authorization internally and must not be redirected to /login.
+    if (pathname.startsWith("/api/")) {
+        return NextResponse.next();
+    }
+
     const res = NextResponse.next({
         request: {
             headers: req.headers,
@@ -32,7 +39,6 @@ export async function proxy(req: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const pathname = req.nextUrl.pathname;
     const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
     if (!user && !isPublic) {

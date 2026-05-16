@@ -19,3 +19,29 @@ export type Plan = {
     active: boolean;
     created_at: string;
 };
+
+export type WhatsAppSession = {
+    id: string;
+    user_id: string;
+    phone_number: string | null;
+    status: "DISCONNECTED" | "CONNECTING" | "CONNECTED";
+    created_at: string;
+};
+
+export type BotMessage = {
+    id: string;
+    user_id: string;
+    direction: "IN" | "OUT";
+    content: string;
+    created_at: string;
+};
+
+export type BotQuestion = {
+    id: string;
+    user_id: string;
+    prompt: string;
+    response: string;
+    active: boolean;
+    sort_order: number;
+    created_at: string;
+};

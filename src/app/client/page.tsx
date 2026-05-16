@@ -1,8 +1,42 @@
 import { LogoutButton } from "@/components/logout-button";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { createClient } from "@/lib/supabase/server";
+import type { AppUser, BotMessage, BotQuestion, WhatsAppSession } from "@/lib/types";
+
+import ClientDashboard from "./ClientDashboard";
 
 export default async function ClientPage() {
     const profile = await requireAuth();
+    const supabase = await createClient();
+
+    const [{ data: session, error: sessionError }, { data: messages, error: messagesError }, { data: questions, error: questionsError }] = await Promise.all([
+        supabase
+            .from("whatsapp_sessions")
+            .select("id, user_id, phone_number, status, created_at")
+            .eq("user_id", profile.id)
+            .maybeSingle<WhatsAppSession>(),
+        supabase
+            .from("bot_messages")
+            .select("id, user_id, direction, content, created_at")
+            .eq("user_id", profile.id)
+            .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+            .order("created_at", { ascending: false })
+            .limit(20)
+            .returns<BotMessage[]>(),
+        supabase
+            .from("bot_questions")
+            .select("id, user_id, prompt, response, active, sort_order, created_at")
+            .eq("user_id", profile.id)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true })
+            .returns<BotQuestion[]>(),
+    ]);
+
+    const setupWarnings = [
+        sessionError ? "A sessão do WhatsApp ainda não está pronta no Supabase." : null,
+        messagesError ? "O histórico de mensagens ainda não está disponível." : null,
+        questionsError ? "A tabela de perguntas do bot ainda não foi aplicada no Supabase. Rode o SQL atualizado." : null,
+    ].filter(Boolean) as string[];
 
     return (
         <main className="mx-auto w-full max-w-5xl flex-1 p-6">
@@ -14,24 +48,13 @@ export default async function ClientPage() {
                 <LogoutButton />
             </header>
 
-            <section className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl bg-white p-5 shadow-sm">
-                    <h2 className="text-lg font-semibold">Conectar WhatsApp</h2>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
-                        Esta seção está pronta para integração com o serviço de sessão QR Code.
-                    </p>
-                    <button className="mt-4 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white">
-                        Iniciar sessão por QR Code
-                    </button>
-                </div>
-
-                <div className="rounded-2xl bg-white p-5 shadow-sm">
-                    <h2 className="text-lg font-semibold">Histórico e Bot</h2>
-                    <p className="mt-2 text-sm text-[var(--muted)]">
-                        Visualize histórico, ajuste respostas e configure seu bot usando apenas dados da sua conta.
-                    </p>
-                </div>
-            </section>
+            <ClientDashboard
+                profile={profile as AppUser}
+                initialSession={session}
+                initialMessages={messages ?? []}
+                initialQuestions={questions ?? []}
+                setupWarnings={setupWarnings}
+            />
         </main>
     );
 }

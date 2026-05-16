@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireApiUser } from "@/lib/api/auth-guards";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
     const result = await requireApiUser();
@@ -26,7 +27,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: updateAuthError.message }, { status: 400 });
     }
 
-    const { error: updateProfileError } = await result.supabase
+    const adminClient = createAdminClient();
+
+    const { error: updateProfileError } = await adminClient
         .from("users")
         .update({
             must_change_password: false,

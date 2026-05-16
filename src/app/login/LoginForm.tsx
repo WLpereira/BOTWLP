@@ -34,11 +34,15 @@ export default function LoginForm() {
         if (authData.user) {
             const { data: profile } = await supabase
                 .from("users")
-                .select("role")
+                .select("role, must_change_password")
                 .eq("id", authData.user.id)
-                .maybeSingle<{ role: "ADMIN_MASTER" | "CLIENTE" }>();
+                .maybeSingle<{ role: "ADMIN_MASTER" | "CLIENTE"; must_change_password: boolean }>();
 
-            router.push(profile?.role === "ADMIN_MASTER" ? "/admin" : "/client");
+            if (profile?.must_change_password) {
+                router.push("/change-password");
+            } else {
+                router.push(profile?.role === "ADMIN_MASTER" ? "/admin" : "/client");
+            }
         } else {
             router.push("/");
         }

@@ -89,23 +89,18 @@ export async function POST(request: Request) {
                     .order("sort_order", { ascending: true })
                     .order("created_at", { ascending: true });
 
-                if (!questions?.length) {
-                    continue;
-                }
-
                 const lowerText = messageText.toLowerCase();
-                const match = questions.find((question) => lowerText.includes(String(question.prompt).toLowerCase()));
+                const match = questions?.find((question) => lowerText.includes(String(question.prompt).toLowerCase()));
+                const replyText =
+                    match?.response ??
+                    "Recebemos sua mensagem. Em breve o bot fará o atendimento desse número automaticamente.";
 
-                if (!match) {
-                    continue;
-                }
-
-                await sendText(phoneNumberId, from, String(match.response));
+                await sendText(phoneNumberId, from, String(replyText));
 
                 await adminClient.from("bot_messages").insert({
                     user_id: session.user_id,
                     direction: "OUT",
-                    content: String(match.response),
+                    content: String(replyText),
                 });
             }
         }
